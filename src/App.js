@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Component, Suspense } from 'react';
 //import logo from './logo.svg';
 import './App.css';
 import {
@@ -8,12 +8,44 @@ import {
 } from 'react-router-dom'
 
 import Home from './Component/Home';
-import About from './Component/About';
 
-import Topics from './Component/Topics';
+//import Topics from './Component/Topics';
 
-  
+// lazy() < new way Code splitting
+//import About from './Component/About'; // regular static import
 
+const About = React.lazy(() => {
+  return import('./Component/About');
+})
+
+
+
+// DynamicImport < old way Code splitting
+class DynamicImport extends Component {
+  state = {
+    component: null
+  }
+
+  componentDidMount() {
+    this.props.load()
+      .then((mod) => this.setState(() => ({
+        component: mod.default
+      })))
+  }
+
+  render() {
+    return this.props.children(this.state.component)
+  }
+}
+
+const Topics = (props) => (
+  <DynamicImport load={() => import('./Component/Topics')}>
+    {(Component) => Component === null
+      ? <h1>Loading!</h1>
+      : <Component {...props} />
+    }
+  </DynamicImport>
+)
 
 
 function App() {
@@ -26,10 +58,17 @@ function App() {
           <li><Link to='/topics'>Topics</Link></li>
         </ul>
 
-        <hr/>
+        <hr />
 
         <Route exact path='/' component={Home} />
-        <Route path='/about' component={About} />
+        <Route path='/about' component={() => (
+          <div>
+            <Suspense fallback={<div>Loading...</div>}>
+              <About />
+            </Suspense>
+          </div>
+        )
+        } />
         <Route path='/topics' component={Topics} />
       </div>
     </Router>
